@@ -43,6 +43,13 @@ jobs:
           cd publish
           zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip \
             JellyEmu.dll manifest.json
+
+      - name: Create Release Zip
+        run: | 
+         cd publish
+         zip -j JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
+
+      
       - name: Compute checksums
         id: checksum
         run: |
