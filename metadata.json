@@ -1,0 +1,8 @@
+{
+  "name": "JellyEmu",
+  "description": "The Ultimate Emulator Library for Jellyfin with in-browser gameplay, ROM explorer, cloud saves, and configuration manager.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
