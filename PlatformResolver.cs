@@ -392,7 +392,7 @@ namespace JellyEmu
                 ".adz", ".dsk", ".bin", ".3ds", ".cci", ".cia", ".gcm", ".gcz", ".rvz", ".wbfs", ".wad",
                 ".xex", ".xiso", ".vpk", ".j3u", ".exe", ".msi", ".elf", ".nrg",
                 ".appimage", ".deb", ".flatpak", ".snap", ".sh", ".x86_64", ".x86",
-                ".app", ".dmg", ".pkg", ".apk", ".xapk"
+                ".app", ".dmg", ".pkg", ".apk", ".xapk", ".swf", ".html", ".htm"
             };
     }
 
