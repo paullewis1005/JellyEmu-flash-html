@@ -35,12 +35,7 @@ namespace JellyEmu.Controllers
             }
             return true;
         }
-        /// <summary>
-        /// Gets whether or not the browser should consider the origin trustworthy.
-        /// HTTPS or localhost are trustworthy in most browsers. This is important
-        /// for determining whether or not to send the
-        /// "Cross-Origin-Opener-Policy" header.
-        /// </summary>
+
         protected bool IsTrustworthyOrigin()
         {
             if (Request.IsHttps) return true;
@@ -54,9 +49,6 @@ namespace JellyEmu.Controllers
                 || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Gets the configured or proxied base path for the application, e.g. "/jellyfin", or empty string if root.
-        /// </summary>
         protected string GetPathBase()
         {
             return Request?.PathBase.HasValue == true
@@ -64,17 +56,11 @@ namespace JellyEmu.Controllers
                 : string.Empty;
         }
 
-        /// <summary>
-        /// Gets the full server base URL including scheme, host, and path base (e.g. "http://localhost:8096/jellyfin").
-        /// </summary>
         protected string GetServerBase()
         {
             return $"{Request.Scheme}://{Request.Host}{GetPathBase()}";
         }
 
-        /// <summary>
-        /// Converts an app-relative path into a fully qualified path with PathBase prefixed (e.g. "/jellyfin/jellyemu/rom/123").
-        /// </summary>
         protected string ToAppUrl(string relativePath)
         {
             var basePrefix = GetPathBase();
@@ -84,10 +70,6 @@ namespace JellyEmu.Controllers
                 : $"{basePrefix}/{cleanPath}";
         }
 
-        /// <summary>
-        /// Applies the cross-origin isolation headers.
-        /// This is skipped on insecure requests to avoid browser security errors.
-        /// </summary>
         protected void ApplyCrossOriginIsolationHeaders()
         {
             if (!IsTrustworthyOrigin()) return;
@@ -381,6 +363,8 @@ namespace JellyEmu.Controllers
                 { "MAME 2003",        "mame2003_plus" },
                 { "DOS",              "dosbox_pure"   },
                 { "PICO-8",           "pico8"         },
+                { "Flash",            "flash"         },
+                { "HTML5",            "html5"         },
             };
 
         /// <summary>
@@ -426,6 +410,9 @@ namespace JellyEmu.Controllers
                 { "p8", "pico8" },
                 // PS2
                 { "elf", "play" },
+                // Flash & HTML5
+                { "swf", "flash" },
+                { "html", "html5" }, { "htm", "html5" },
             };
 
         /// <summary>
@@ -449,7 +436,7 @@ namespace JellyEmu.Controllers
                 { "Sega Genesis",     "Sega - Mega Drive - Genesis"                    },
                 { "Sega CD",          "Sega - Mega-CD - Sega CD"                       },
                 { "Sega 32X",         "Sega - 32X"                                     },
-                { "PlayStation",      "Sony - PlayStation"                              },
+                { "PlayStation",      "Sony - PlayStation"                             },
                 { "PSP",              "Sony - PlayStation Portable"                     },
                 { "Atari 2600",       "Atari - 2600"                                   },
                 { "Atari 7800",       "Atari - 7800"                                   },
@@ -459,11 +446,6 @@ namespace JellyEmu.Controllers
                 { "NeoGeo Pocket",    "SNK - Neo Geo Pocket Color"                     },
                 { "Arcade",           "FBNeo - Arcade Games"                           },
             };
-
-        // Saves:    {DataPath}/jellyemu-saves/{userId}/slot{slot}/{itemId}.state
-        // Slot/prefs: {DataPath}/jellyemu-saves/{userId}/active-slot.json
-        // Full prefs: {DataPath}/jellyemu-saves/{userId}/prefs.json
-        // Playtime:  {DataPath}/jellyemu-saves/{userId}/playtime.json
 
         private static readonly Regex SafeIdRegex = new Regex("^[a-zA-Z0-9_-]{1,64}$", RegexOptions.Compiled);
 
@@ -579,7 +561,6 @@ namespace JellyEmu.Controllers
                         createTableCommand.ExecuteNonQuery();
                     }
 
-                    // Run migration for existing playtime.json files
                     MigrateLegacyPlaytime(dbPath);
                 }
                 catch (Exception ex)
@@ -635,7 +616,6 @@ namespace JellyEmu.Controllers
                         }
                         transaction.Commit();
 
-                        // Rename legacy file to prevent re-migration
                         var migratedPath = Path.Combine(userDir, "playtime.json.migrated");
                         if (System.IO.File.Exists(migratedPath)) System.IO.File.Delete(migratedPath);
                         System.IO.File.Move(jsonPath, migratedPath);
@@ -706,12 +686,10 @@ namespace JellyEmu.Controllers
             }
         }
 
-
-
         protected static bool IsThreadedCore(string core)
         {
             var lower = (core ?? string.Empty).ToLowerInvariant();
-            if (lower == "pico8") return false;
+            if (lower is "pico8" or "flash" or "html5") return false;
             return true;
         }
 
@@ -748,6 +726,8 @@ namespace JellyEmu.Controllers
                 "mednafen_psx" => "mednafen_psx_hw",
                 "3ds" or "citra" or "citra_canary" => "azahar",
                 "ps2" or "playstation2" or "playstation 2" or "play" => "play",
+                "flash" => "flash",
+                "html5" => "html5",
                 _ => core ?? string.Empty
             };
         }
@@ -907,6 +887,8 @@ namespace JellyEmu.Controllers
             {
                 "pico8" => "pico8",
                 "play"  => "play",
+                "flash" => "flash",
+                "html5" => "html5",
                 _       => "ejs"
             };
             return new CoreInfo(core, needsThreads, launcher);
@@ -920,6 +902,8 @@ namespace JellyEmu.Controllers
             {
                 "pico8" => "pico8",
                 "play"  => "play",
+                "flash" => "flash",
+                "html5" => "html5",
                 _       => "ejs"
             };
             return new CoreInfo(core, needsThreads, launcher);
