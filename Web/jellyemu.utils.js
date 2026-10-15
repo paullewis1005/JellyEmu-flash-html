@@ -167,6 +167,37 @@
     };
 
     /**
+     * Handles routing and launching games based on resolved core info.
+     * @param {string} itemId
+     * @param {number} [slot]
+     */
+    JE.launchEmulator = function (itemId, slot) {
+        var userId = window.ApiClient ? window.ApiClient.getCurrentUserId() : '';
+
+        JE.json('/jellyemu/core/' + itemId).then(function (coreInfo) {
+            var core = coreInfo && coreInfo.core ? coreInfo.core.toLowerCase() : '';
+            var launcher = coreInfo && coreInfo.launcher ? coreInfo.launcher.toLowerCase() : '';
+
+            var playUrl = '';
+            if (launcher === 'flash' || core === 'flash') {
+                playUrl = JE.getUrl('/jellyemu/flash/play/' + itemId);
+            } else if (launcher === 'html5' || core === 'html5') {
+                playUrl = JE.getUrl('/jellyemu/html5/play/' + itemId);
+            } else if (launcher === 'pico8') {
+                playUrl = JE.getUrl('/jellyemu/pico8/play/' + itemId);
+            } else if (launcher === 'play') {
+                playUrl = JE.getUrl('/jellyemu/play/play/' + itemId) + (userId ? '?userId=' + userId : '');
+                if (slot) playUrl += '&slot=' + slot;
+            } else {
+                playUrl = JE.getUrl('/jellyemu/play/' + itemId) + (userId ? '?userId=' + userId : '');
+                if (slot) playUrl += '&slot=' + slot;
+            }
+
+            window.location.href = playUrl;
+        });
+    };
+
+    /**
      * Displays a lightweight toast notification on the active screen.
      * @param {string} message
      * @param {number|string} [durationOrType=2500]
@@ -234,7 +265,6 @@
             }
         }
 
-        // Local browser download fallback
         try {
             var a = global.document.createElement('a');
             a.href = typeof dataUrlOrBlob === 'string' ? dataUrlOrBlob : URL.createObjectURL(dataUrlOrBlob);
@@ -313,4 +343,3 @@
     };
 
 })(typeof window !== 'undefined' ? window : this);
-
