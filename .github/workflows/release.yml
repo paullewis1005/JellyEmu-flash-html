@@ -1,17 +1,11 @@
 name: Build & Release
 
-
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g., v0.10.0.2)'
-        required: true
-        default: 'v0.10.0.2'
-        
+
 permissions:
   contents: write
 
@@ -46,15 +40,15 @@ jobs:
 
       - name: Prepare Manifest and Zip Artifacts
         run: |
-          # Update the version in the manifest and place it in the publish folder
           jq --arg v "${{ steps.version.outputs.VERSION }}" 'map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
-          
-          # Flatten the publish directory structure if framework subfolders were created
-          find publish/ -mindepth 2 -type f -exec mv -t publish/ {} +
-          
-          # Create the release zip containing all required files
-          cd publish
-          zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
+          PUB_DIR=$(find publish -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          if [ -n "$PUB_DIR" ]; then
+            cd "$PUB_DIR"
+          else
+            cd publish
+          fi
+          zip -j ../../JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
+          cd ..
 
       - name: Compute checksums
         id: checksum
