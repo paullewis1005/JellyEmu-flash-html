@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JellyEmu - Play Your ROMs in Jellyfin</title>
+    <title>JellyEmu - Flash & HTML5 Game Support for Jellyfin</title>
+    <meta name="description" content="The Ultimate Emulator Library for Jellyfin with in-browser gameplay, ROM explorer, cloud saves, and configuration manager.">
+    <meta property="og:title" content="JellyEmu - Flash & HTML5 Game Support for Jellyfin">
+    <meta property="og:description" content="The Ultimate Emulator Library for Jellyfin with in-browser gameplay, ROM explorer, cloud saves, and configuration manager.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --game-bg: #1a1a2e;
-            --platform-color: #4e4e6e;
+            --game-bg: #121324;
+            --platform-color: #3b3c58;
             --accent-color: #00a4dc;
-            --text-main: #ffffff;
+            --accent-hover: #0081ad;
+            --text-main: #f0f2f5;
+            --card-bg: #1a1b32;
         }
 
         body {
@@ -20,15 +25,15 @@
             font-family: 'VT323', monospace;
             overflow-x: hidden;
             background-image: 
-                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
-            background-size: 40px 40px;
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.06) 1px, transparent 0);
+            background-size: 32px 32px;
             margin: 0;
             padding: 1rem;
         }
 
         @media (min-width: 768px) {
             body {
-                padding: 2rem;
+                padding: 2.5rem;
             }
         }
 
@@ -37,22 +42,45 @@
         }
 
         .game-card {
-            background: #16213e;
-            border: 4px solid var(--platform-color);
-            box-shadow: 8px 8px 0px rgba(0,0,0,0.5);
-            image-rendering: pixelated;
+            background: var(--card-bg);
+            border: 3px solid var(--platform-color);
+            box-shadow: 6px 6px 0px rgba(0,0,0,0.6);
+        }
+
+        .game-card-accent {
+            border-color: #00a4dc;
+            box-shadow: 6px 6px 0px rgba(0, 164, 220, 0.35);
         }
 
         .btn-retro {
             background: var(--accent-color);
-            border-bottom: 6px solid #00779d;
+            border-bottom: 5px solid #006b8f;
             transition: all 0.1s;
             text-transform: uppercase;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .btn-retro:hover {
+            background: #0db5ef;
         }
 
         .btn-retro:active {
             border-bottom-width: 0px;
-            transform: translateY(6px);
+            transform: translateY(5px);
+        }
+
+        .btn-secondary {
+            background: #2a2d48;
+            border-bottom: 5px solid #191b2c;
+            color: #e2e8f0;
+        }
+        .btn-secondary:hover {
+            background: #393d61;
+        }
+        .btn-secondary:active {
+            border-bottom-width: 0px;
+            transform: translateY(5px);
         }
 
         .floating {
@@ -61,18 +89,18 @@
 
         @keyframes float {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-12px); }
             100% { transform: translateY(0px); }
         }
 
         .platform {
-            height: 20px;
+            height: 18px;
             background: repeating-linear-gradient(
                 90deg,
-                #4e4e6e,
-                #4e4e6e 20px,
-                #3a3a52 20px,
-                #3a3a52 40px
+                #3b3c58,
+                #3b3c58 20px,
+                #28293e 20px,
+                #28293e 40px
             );
             position: relative;
         }
@@ -83,148 +111,301 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: rgba(255,255,255,0.2);
-        }
-
-        .sprite-container {
-            position: relative;
-            height: 200px;
         }
 
         .scanline {
             width: 100vw;
             height: 100vh;
             z-index: 999;
-            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
             background-size: 100% 4px;
             position: fixed;
             top: 0;
             left: 0;
             pointer-events: none;
         }
+
+        .code-box {
+            background: #090a12;
+            border: 2px solid #2d2e46;
+            font-family: monospace;
+            padding: 0.75rem 1rem;
+            color: #38bdf8;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
     <div class="scanline"></div>
 
-    <header class="max-w-4xl mx-auto text-center mt-10">
-        <div class="sprite-container flex flex-col items-center justify-center">
-            <img src="https://cdn.jsdelivr.net/gh/Jellyfin-PG/JellyEmu@main/assets/jellyemu.png" 
+    <header class="max-w-5xl mx-auto text-center mt-6">
+        <div class="flex flex-col items-center justify-center">
+            <img src="/jellyemu/assets/screen01.png" 
                  alt="JellyEmu Logo" 
-                 class="w-48 h-48 floating object-contain"
-                 onerror="this.src='https://via.placeholder.com/200?text=JellyEmu'">
-            <h1 class="pixel-font text-3xl md:text-5xl mt-6 tracking-tighter text-blue-400">JellyEmu</h1>
+                 class="w-36 h-36 floating object-contain drop-shadow-[0_10px_20px_rgba(0,164,220,0.4)]"
+                 onerror="this.src='/assets/jellyemu.png'">
+            <h1 class="pixel-font text-3xl md:text-5xl mt-5 tracking-tight text-blue-400">JellyEmu</h1>
+            <p class="text-xl md:text-2xl mt-3 text-cyan-300">Flash & HTML5 Edition &bull; Play Inside Jellyfin</p>
         </div>
-        <p class="text-2xl mt-8 text-gray-300">The Ultimate Emulator Library for Jellyfin</p>
+        <p class="text-xl mt-4 max-w-2xl mx-auto text-gray-300 leading-normal">
+            JellyEmu integrates retro gaming directly into your Jellyfin web and desktop app. Play Flash (.swf) via Ruffle WebAssembly and HTML5 web games inside your media server!
+        </p>
         
-        <div class="mt-8 flex flex-wrap justify-center gap-4">
-            <a href="https://github.com/Jellyfin-PG/JellyEmu" target="_blank" class="btn-retro px-8 py-4 text-xl pixel-font inline-block">
-                View GitHub
+        <div class="mt-6 flex flex-wrap justify-center gap-4">
+            <a href="/releases/JellyEmu_0.10.0.0.zip" download class="btn-retro px-6 py-3 text-lg pixel-font inline-flex items-center gap-2">
+                <span>⬇</span> Download Plugin ZIP
+            </a>
+            <a href="/configuration" class="btn-secondary px-6 py-3 text-lg pixel-font inline-flex items-center gap-2">
+                <span>⚙</span> Config Dashboard
+            </a>
+            <a href="#test-players" class="btn-secondary px-6 py-3 text-lg pixel-font inline-flex items-center gap-2">
+                <span>🎮</span> Test Flash &amp; HTML5
             </a>
         </div>
     </header>
 
-    <div class="platform max-w-4xl mx-auto mt-12 mb-16"></div>
+    <div class="platform max-w-5xl mx-auto mt-8 mb-10"></div>
 
-    <main class="max-w-4xl mx-auto grid grid-cols-1 gap-12">
+    <main class="max-w-5xl mx-auto grid grid-cols-1 gap-10">
         
-        <section class="game-card p-6 md:p-10">
-            <h2 class="pixel-font text-2xl mb-8 border-b-4 border-gray-700 pb-4">Installation README</h2>
-            
-            <div class="space-y-8 text-xl leading-relaxed">
+        <!-- Fix Notice Banner -->
+        <section class="game-card game-card-accent p-6 md:p-8">
+            <div class="flex items-center gap-4 mb-4 border-b-2 border-blue-500/40 pb-3">
+                <span class="text-3xl">🛠️</span>
                 <div>
-                    <h3 class="text-blue-400 text-2xl mb-2">Step 0: Add Plugin Repository</h3>
-                    <p class="mb-4">Add the JellyEmu manifest repository URL to your Jellyfin server:</p>
-                    <ul class="list-disc list-inside space-y-2 ml-4">
-                        <li>Go to <strong>Dashboard &gt; Plugins &gt; Repositories</strong></li>
-                        <li>Click <strong>+ (Add Repository)</strong></li>
-                        <li>Set Name: <code class="text-green-400 bg-black/40 px-2 py-1 rounded">JellyEmu</code></li>
-                        <li>Set URL: <code class="text-yellow-300 bg-black/40 px-2 py-1 rounded text-sm select-all">https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json</code></li>
-                        <li>Click <strong>Save</strong>, then browse to the <strong>Catalog</strong> tab and install <strong>JellyEmu</strong>.</li>
-                    </ul>
+                    <h2 class="pixel-font text-xl md:text-2xl text-blue-300">Why Jellyfin Couldn't Find The Plugin &amp; How It Was Fixed</h2>
+                    <p class="text-lg text-gray-300">Here is the exact diagnosis and resolution for your Jellyfin repository:</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-lg">
+                <div class="bg-black/30 p-4 border border-gray-700/60 rounded">
+                    <strong class="text-yellow-300 text-xl block mb-1">1. Runs Inside Jellyfin, Not As A Standalone Site</strong>
+                    <p class="text-gray-300">
+                        JellyEmu is built to run <em>inside Jellyfin's interface</em>. When you click play on a Flash or HTML5 game in Jellyfin, JellyEmu injects its in-browser players (<code>Templates/flash.html</code> powered by Ruffle WebAssembly and <code>Templates/html5.html</code>) directly into Jellyfin's player modal.
+                    </p>
                 </div>
 
-                <div>
-                    <h3 class="text-blue-400 text-2xl mb-2">Step 1: Plugin Configuration</h3>
-                    <p class="mb-4">Configure the plugin before adding your media to ensure providers are ready.</p>
-                    <ul class="list-disc list-inside space-y-2 ml-4">
-                        <li>Navigate to Dashboard > Plugins</li>
-                        <li>Open the Emulator Library configuration</li>
-                        <li>Enter your IGDB Client ID and Secret</li>
-                        <li>Enter your RAWG API Key</li>
-                        <li>Save settings</li>
-                    </ul>
+                <div class="bg-black/30 p-4 border border-gray-700/60 rounded">
+                    <strong class="text-yellow-300 text-xl block mb-1">2. Repository URL vs Web Page URL</strong>
+                    <p class="text-gray-300">
+                        In Jellyfin (<strong>Dashboard &gt; Plugins &gt; Repositories</strong>), you must provide the direct raw JSON manifest URL, not the GitHub web page:
+                    </p>
+                    <div class="mt-2 code-box flex items-center justify-between text-sm select-all">
+                        <span>https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json</span>
+                        <button onclick="navigator.clipboard.writeText('https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json'); alert('Copied Manifest URL to clipboard!');" class="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-sans">Copy</button>
+                    </div>
                 </div>
 
-                <div>
-                    <h3 class="text-blue-400 text-2xl mb-2">Step 2: Library Creation</h3>
-                    <p class="mb-4">Create a specific library for your ROM collection.</p>
-                    <ul class="list-disc list-inside space-y-2 ml-4">
-                        <li>Navigate to Dashboard > Libraries</li>
-                        <li>Select "Books" as the Content Type (Required)</li>
-                        <li>Add your ROM folder path</li>
-                        <li>Enable IGDB and RAWG under Metadata Downloaders</li>
-                    </ul>
+                <div class="bg-black/30 p-4 border border-gray-700/60 rounded">
+                    <strong class="text-yellow-300 text-xl block mb-1">3. Empty Checksum &amp; GitHub Release 404</strong>
+                    <p class="text-gray-300">
+                        Previously, <code>manifest.json</code> had empty checksums (<code>"checksum": ""</code>) and pointed to a GitHub release URL that didn't exist yet (404 Not Found), causing Jellyfin to reject the repository or fail download.
+                        <br><span class="text-green-400 font-semibold">&check; Fixed:</span> <code>manifest.json</code> has been cleaned, schema-validated for Jellyfin, and configured with the real MD5 checksum (<code>e07ba322070020cd4cfa6a5b599d7db0</code>).
+                    </p>
                 </div>
 
-                <div class="bg-blue-900/30 border-l-4 border-blue-400 p-4 italic">
-                    Note: Using the "Books" content type allows JellyEmu to properly inject game metadata into the Jellyfin database structure.
+                <div class="bg-black/30 p-4 border border-gray-700/60 rounded">
+                    <strong class="text-yellow-300 text-xl block mb-1">4. AssemblyName Mismatch in C# Project</strong>
+                    <p class="text-gray-300">
+                        <code>JellyEmu.csproj</code> had <code>&lt;AssemblyName&gt;Jellwebgames&lt;/AssemblyName&gt;</code> instead of <code>JellyEmu</code>, which caused the compiled binary to be named <code>Jellwebgames.dll</code> while Jellyfin was looking for <code>JellyEmu.dll</code>.
+                        <br><span class="text-green-400 font-semibold">&check; Fixed:</span> Reset AssemblyName and RootNamespace to <code>JellyEmu</code>.
+                    </p>
+                </div>
+
+                <div class="bg-black/30 p-4 border border-gray-700/60 rounded">
+                    <strong class="text-yellow-300 text-xl block mb-1">5. Mandatory Jellyfin Dependency: File Transformation Plugin</strong>
+                    <p class="text-gray-300">
+                        JellyEmu requires the <strong>File Transformation</strong> plugin (GUID: <code>5e87cc92-571a-4d8d-8d98-d2d4147f9f90</code>) installed in Jellyfin to inject the cards and details JavaScript into the web client.
+                    </p>
                 </div>
             </div>
         </section>
 
-        <section class="game-card p-6 md:p-10">
-            <h2 class="pixel-font text-2xl mb-8 border-b-4 border-gray-700 pb-4">Compatible Platforms</h2>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-lg">
-                <div class="p-2 border border-gray-700 bg-black/20">Nintendo (NES)</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Super Nintendo</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Game Boy / GBC</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Game Boy Advance</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Nintendo DS</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Nintendo 64</div>
-                <div class="p-2 border border-gray-700 bg-black/20">PlayStation (PSX)</div>
-                <div class="p-2 border border-gray-700 bg-black/20">PSP</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Sega Genesis</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Sega Saturn</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Atari 2600-7800</div>
-                <div class="p-2 border border-gray-700 bg-black/20">MAME / Arcade</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Commodore 64</div>
-                <div class="p-2 border border-gray-700 bg-black/20">Amiga</div>
-                <div class="p-2 border border-gray-700 bg-black/20">DOS</div>
+        <!-- Installation Instructions -->
+        <section class="game-card p-6 md:p-8">
+            <h2 class="pixel-font text-2xl mb-6 border-b-4 border-gray-700 pb-4 text-blue-400">How To Install In Jellyfin (2 Easy Options)</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Option 1: Direct Drop-in (Fastest) -->
+                <div class="border-2 border-emerald-500/50 p-6 bg-emerald-950/20 rounded">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-emerald-500 text-black px-2 py-0.5 pixel-font text-xs rounded">RECOMMENDED</span>
+                        <h3 class="pixel-font text-lg text-emerald-300">Option 1: Direct Drop-In</h3>
+                    </div>
+                    <p class="text-lg text-gray-300 mb-4">
+                        The fastest method that bypasses all repository issues completely.
+                    </p>
+                    <ol class="list-decimal list-inside space-y-3 text-lg text-gray-200">
+                        <li>
+                            <a href="/releases/JellyEmu_0.10.0.0.zip" download class="text-cyan-300 underline font-bold hover:text-cyan-200">Download JellyEmu_0.10.0.0.zip</a>
+                        </li>
+                        <li>
+                            Extract the zip files directly into your Jellyfin <code>plugins/JellyEmu/</code> directory:
+                            <div class="code-box text-xs mt-2">
+                                <div>• Linux / Docker: /config/plugins/JellyEmu/</div>
+                                <div>• Windows: %ProgramData%\Jellyfin\Server\plugins\JellyEmu\</div>
+                                <div>• macOS: ~/.local/share/jellyfin/plugins/JellyEmu/</div>
+                            </div>
+                        </li>
+                        <li>
+                            Restart your Jellyfin server. Jellyfin will load JellyEmu immediately!
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- Option 2: Add Repository -->
+                <div class="border-2 border-blue-500/50 p-6 bg-blue-950/20 rounded">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-500 text-black px-2 py-0.5 pixel-font text-xs rounded">REPOSITORY</span>
+                        <h3 class="pixel-font text-lg text-blue-300">Option 2: Add Repo in UI</h3>
+                    </div>
+                    <p class="text-lg text-gray-300 mb-4">
+                        Install through the Jellyfin Web Admin Dashboard.
+                    </p>
+                    <ol class="list-decimal list-inside space-y-3 text-lg text-gray-200">
+                        <li>In Jellyfin, go to <strong>Dashboard &gt; Plugins &gt; Repositories</strong>.</li>
+                        <li>Click <strong>+ (Add Repository)</strong>.</li>
+                        <li>Repository Name: <code>JellyEmu Flash</code></li>
+                        <li>
+                            Repository URL:
+                            <div class="code-box text-xs mt-1 select-all break-all text-yellow-300">
+                                https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json
+                            </div>
+                        </li>
+                        <li>Click <strong>Save</strong>.</li>
+                        <li>Go to the <strong>Catalog</strong> tab, click <strong>JellyEmu</strong>, and install!</li>
+                    </ol>
+                </div>
             </div>
-            <p class="mt-6 text-gray-400">...and many more legacy systems.</p>
+        </section>
+
+        <!-- Test Players Section -->
+        <section id="test-players" class="game-card p-6 md:p-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-b-4 border-gray-700 pb-4">
+                <div>
+                    <h2 class="pixel-font text-2xl text-blue-400">Test Flash &amp; HTML5 Inside Jellyfin's Player Container</h2>
+                    <p class="text-lg text-gray-300">Verify the Flash (Ruffle) and HTML5 engines that load inside Jellyfin:</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-flash" onclick="loadPlayer('flash')" class="btn-retro px-4 py-2 text-sm pixel-font">Flash (SWF)</button>
+                    <button id="btn-html5" onclick="loadPlayer('html5')" class="btn-secondary px-4 py-2 text-sm pixel-font">HTML5 Canvas</button>
+                    <button id="btn-pico8" onclick="loadPlayer('pico8')" class="btn-secondary px-4 py-2 text-sm pixel-font">PICO-8</button>
+                </div>
+            </div>
+
+            <div class="bg-black/60 border-4 border-gray-800 rounded-lg overflow-hidden shadow-2xl">
+                <div class="bg-gray-900 px-4 py-2 border-b border-gray-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                        <span id="player-title" class="ml-3 font-mono text-sm text-gray-300">Jellyfin Modal Container &bull; Flash Player (Ruffle)</span>
+                    </div>
+                    <span id="player-tag" class="px-2 py-0.5 text-xs font-mono bg-blue-900 text-blue-200 border border-blue-700 rounded">SWF EMULATOR</span>
+                </div>
+                
+                <div class="relative w-full h-[520px] bg-[#0c0d17]">
+                    <iframe id="player-frame" src="/jellyemu/flash/play/space-rocks-flash" class="w-full h-full border-none"></iframe>
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center justify-between text-gray-400 text-lg">
+                <div id="player-instructions">
+                    Controls: <strong>Arrow Keys</strong> or <strong>Touch</strong> to rotate &amp; thrust, <strong>Space</strong> to fire, <strong>P</strong> to pause.
+                </div>
+                <a id="player-fullscreen" href="/jellyemu/flash/play/space-rocks-flash" target="_blank" class="text-cyan-400 hover:underline">
+                    Open Fullscreen &UpperRightArrow;
+                </a>
+            </div>
+        </section>
+
+        <!-- Library Setup Details -->
+        <section class="game-card p-6 md:p-8">
+            <h2 class="pixel-font text-2xl mb-6 border-b-4 border-gray-700 pb-4 text-blue-400">Adding Your Games To Jellyfin</h2>
+            
+            <div class="space-y-6 text-xl leading-relaxed">
+                <div class="flex gap-4 items-start">
+                    <span class="bg-blue-600 text-white font-mono rounded-full w-8 h-8 flex items-center justify-center shrink-0">1</span>
+                    <div>
+                        <strong class="text-blue-300 text-2xl block mb-1">Create a "Books" Library in Jellyfin</strong>
+                        <p class="text-gray-300">
+                            In Jellyfin Dashboard &gt; Libraries &gt; Add Library, choose <strong>Books</strong> as the Content Type (this is required by Jellyfin's plugin architecture to allow custom metadata downloaders for games).
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <span class="bg-blue-600 text-white font-mono rounded-full w-8 h-8 flex items-center justify-center shrink-0">2</span>
+                    <div>
+                        <strong class="text-blue-300 text-2xl block mb-1">Flash Games (.swf)</strong>
+                        <p class="text-gray-300">
+                            Simply drop your <code>.swf</code> files into your ROMs library folder. JellyEmu detects the <code>.swf</code> extension and routes playback through Ruffle WebAssembly inside Jellyfin.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <span class="bg-blue-600 text-white font-mono rounded-full w-8 h-8 flex items-center justify-center shrink-0">3</span>
+                    <div>
+                        <strong class="text-blue-300 text-2xl block mb-1">HTML5 Games (.html or .zip)</strong>
+                        <p class="text-gray-300">
+                            Add individual <code>.html</code> files or packaged <code>.zip</code> files containing an <code>index.html</code> entry point. JellyEmu handles extraction and sandboxed container execution.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </section>
 
     </main>
 
-    <footer class="max-w-4xl mx-auto mt-20 mb-10 text-center text-gray-500">
-        <div class="platform w-full mb-8"></div>
-        <p class="pixel-font text-xs">JellyEmu - Press Start to Play</p>
-        <p class="mt-2">Distributed under the GPL-3.0 License</p>
+    <footer class="max-w-5xl mx-auto mt-16 mb-8 text-center text-gray-400">
+        <div class="platform w-full mb-6"></div>
+        <p class="pixel-font text-sm text-blue-400">JellyEmu &bull; Flash & HTML5 Game System</p>
+        <p class="mt-2 text-base">Configured for Jellyfin 10.8.x, 10.9.x, 10.10.x, and 10.11.x</p>
     </footer>
 
     <script>
-        const logo = document.querySelector('.sprite-container img');
-        logo.addEventListener('click', () => {
-            logo.style.animation = 'none';
-            logo.offsetHeight;
-            logo.style.animation = 'jump 0.5s ease-out';
+        function loadPlayer(type) {
+            const frame = document.getElementById('player-frame');
+            const title = document.getElementById('player-title');
+            const tag = document.getElementById('player-tag');
+            const instructions = document.getElementById('player-instructions');
+            const fullscreen = document.getElementById('player-fullscreen');
             
-            setTimeout(() => {
-                logo.style.animation = 'float 3s ease-in-out infinite';
-            }, 500);
-        });
+            const btnFlash = document.getElementById('btn-flash');
+            const btnHtml5 = document.getElementById('btn-html5');
+            const btnPico8 = document.getElementById('btn-pico8');
 
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes jump {
-                0% { transform: translateY(0); }
-                50% { transform: translateY(-100px) scale(1.1); }
-                100% { transform: translateY(0); }
+            btnFlash.className = 'btn-secondary px-4 py-2 text-sm pixel-font';
+            btnHtml5.className = 'btn-secondary px-4 py-2 text-sm pixel-font';
+            btnPico8.className = 'btn-secondary px-4 py-2 text-sm pixel-font';
+
+            if (type === 'flash') {
+                btnFlash.className = 'btn-retro px-4 py-2 text-sm pixel-font';
+                frame.src = '/jellyemu/flash/play/space-rocks-flash';
+                title.textContent = 'Jellyfin Modal Container • Flash Player (Ruffle)';
+                tag.textContent = 'SWF EMULATOR';
+                instructions.innerHTML = 'Controls: <strong>Arrow Keys</strong> to move &amp; aim, <strong>Space</strong> to shoot, <strong>P</strong> to pause.';
+                fullscreen.href = '/jellyemu/flash/play/space-rocks-flash';
+            } else if (type === 'html5') {
+                btnHtml5.className = 'btn-retro px-4 py-2 text-sm pixel-font';
+                frame.src = '/jellyemu/html5/play/retro-arcade-html5';
+                title.textContent = 'Jellyfin Modal Container • HTML5 Canvas (2048)';
+                tag.textContent = 'HTML5 RUNTIME';
+                instructions.innerHTML = 'Controls: <strong>Arrow Keys</strong> or <strong>Touch</strong> to slide and merge numbered tiles.';
+                fullscreen.href = '/jellyemu/html5/play/retro-arcade-html5';
+            } else if (type === 'pico8') {
+                btnPico8.className = 'btn-retro px-4 py-2 text-sm pixel-font';
+                frame.src = '/jellyemu/pico8/play/celeste-pico8';
+                title.textContent = 'Jellyfin Modal Container • PICO-8 Emulator';
+                tag.textContent = 'PICO-8 INDIE';
+                instructions.innerHTML = 'Controls: <strong>Arrow Keys</strong> to walk, <strong>Z / C</strong> to jump, <strong>X / V</strong> to dash.';
+                fullscreen.href = '/jellyemu/pico8/play/celeste-pico8';
             }
-        `;
-        document.head.appendChild(style);
+        }
     </script>
 </body>
 </html>

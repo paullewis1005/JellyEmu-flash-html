@@ -2,52 +2,208 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{ game_name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ game_name }} - HTML5 Game</title>
     <style>
-        html, body, iframe { width: 100%; height: 100%; margin: 0; padding: 0; border: none; background: #000; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; }
+        #container, iframe { width: 100%; height: 100%; border: none; }
+
+        /* JellyEmu Overlay Topbar */
+        #je-topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        body:hover #je-topbar, #je-topbar.je-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #je-topbar-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .je-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: #e44d26;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .je-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .je-topbtn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        .je-topbtn:hover { background: rgba(255, 255, 255, 0.2); }
+        .je-topbtn svg { width: 16px; height: 16px; fill: currentColor; }
+
+        /* Loader */
+        #je-loader {
+            position: fixed;
+            inset: 0;
+            background: #0f111a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 99990;
+            transition: opacity 0.4s ease;
+        }
+        .je-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 164, 220, 0.2);
+            border-top-color: #00a4dc;
+            border-radius: 50%;
+            animation: je-spin 0.9s linear infinite;
+        }
+        @keyframes je-spin { to { transform: rotate(360deg); } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-    <div id="container" style="width:100%; height:100%;"></div>
+    <div id="je-loader">
+        <div class="je-spinner"></div>
+        <div style="font-size: 20px; font-weight: 600;">Loading {{ game_name }}</div>
+        <div style="color: #aaa; font-size: 13px;">Preparing HTML5 Runtime Container…</div>
+    </div>
+
+    <div id="je-topbar">
+        <div id="je-topbar-title">
+            <span>{{ game_name }}</span>
+            <span class="je-badge">HTML5</span>
+        </div>
+        <div class="je-actions">
+            <button class="je-topbtn" id="je-btn-fs" onclick="toggleFullscreen()" title="Fullscreen">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                <span>Fullscreen</span>
+            </button>
+            <button class="je-topbtn" onclick="jeExit()" title="Exit Game">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                <span>Exit</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="container"></div>
+
     <script>
+        function jeExit() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage('close-jellyemu', '*');
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        let idleTimer = null;
+        function showTopBar() {
+            const bar = document.getElementById('je-topbar');
+            bar.classList.add('je-active');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => bar.classList.remove('je-active'), 3000);
+        }
+        document.addEventListener('mousemove', showTopBar);
+        document.addEventListener('touchstart', showTopBar, { passive: true });
+
         window.addEventListener("load", async () => {
             const container = document.getElementById("container");
+            const loader = document.getElementById("je-loader");
             const romUrl = "{{ rom_url }}";
 
-            if (romUrl.endsWith(".html") || romUrl.endsWith(".htm")) {
+            function dismissLoader() {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 400);
+            }
+
+            if (romUrl.endsWith(".html") || romUrl.endsWith(".htm") || romUrl.includes("/rom/retro-arcade-html5")) {
                 const iframe = document.createElement("iframe");
                 iframe.src = romUrl;
+                iframe.allow = "autoplay; fullscreen; gamepad";
+                iframe.onload = dismissLoader;
                 container.appendChild(iframe);
             } else {
-                const res = await fetch(romUrl);
-                const buf = await res.arrayBuffer();
-                const zip = await window.JSZip.loadAsync(buf);
-                const blobMap = {};
-                let indexFile = null;
+                try {
+                    const res = await fetch(romUrl);
+                    const buf = await res.arrayBuffer();
+                    const zip = await window.JSZip.loadAsync(buf);
+                    const blobMap = {};
+                    let indexFile = null;
 
-                for (const [path, file] of Object.entries(zip.files)) {
-                    if (file.dir) continue;
-                    const ext = path.split('.').pop().toLowerCase();
-                    const mime = { html: 'text/html', js: 'text/javascript', css: 'text/css', png: 'image/png', jpg: 'image/jpeg', wasm: 'application/wasm' }[ext] || 'application/octet-stream';
-                    const blob = await file.async('blob');
-                    blobMap[path] = URL.createObjectURL(new Blob([blob], { type: mime }));
-                    if (path.endsWith('index.html')) indexFile = path;
+                    for (const [path, file] of Object.entries(zip.files)) {
+                        if (file.dir) continue;
+                        const ext = path.split('.').pop().toLowerCase();
+                        const mime = { html: 'text/html', js: 'text/javascript', css: 'text/css', png: 'image/png', jpg: 'image/jpeg', wasm: 'application/wasm' }[ext] || 'application/octet-stream';
+                        const blob = await file.async('blob');
+                        blobMap[path] = URL.createObjectURL(new Blob([blob], { type: mime }));
+                        if (path.endsWith('index.html')) indexFile = path;
+                    }
+
+                    if (!indexFile) {
+                        dismissLoader();
+                        container.innerHTML = '<div style="color:#ff6b6b;padding:30px;text-align:center;"><h2>No index.html found in ZIP archive</h2><p>Please ensure the HTML5 game archive contains an index.html file.</p></div>';
+                        return;
+                    }
+
+                    let html = await zip.file(indexFile).async('string');
+                    for (const [path, blobUrl] of Object.entries(blobMap)) {
+                        html = html.split(path).join(blobUrl);
+                    }
+
+                    const iframe = document.createElement("iframe");
+                    iframe.src = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+                    iframe.allow = "autoplay; fullscreen; gamepad";
+                    iframe.onload = dismissLoader;
+                    container.appendChild(iframe);
+                } catch (err) {
+                    dismissLoader();
+                    container.innerHTML = '<div style="color:#ff6b6b;padding:30px;text-align:center;"><h2>Failed to load HTML5 game</h2><p>' + err.message + '</p></div>';
                 }
-
-                if (!indexFile) {
-                    container.innerHTML = '<p style="color:red;padding:20px;">Error: No index.html found in ZIP archive.</p>';
-                    return;
-                }
-
-                let html = await zip.file(indexFile).async('string');
-                for (const [path, blobUrl] of Object.entries(blobMap)) {
-                    html = html.split(path).join(blobUrl);
-                }
-
-                const iframe = document.createElement("iframe");
-                iframe.src = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-                container.appendChild(iframe);
             }
         });
     </script>

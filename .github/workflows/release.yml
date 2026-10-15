@@ -21,7 +21,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
         run: dotnet restore JellyEmu.csproj
@@ -38,37 +38,45 @@ jobs:
           VERSION=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' JellyEmu.csproj | xargs)
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Prepare Manifest and Zip Artifacts
+      - name: Prepare Zip Artifacts
         run: |
-          jq --arg v "${{ steps.version.outputs.VERSION }}" 'map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
-          PUB_DIR=$(find publish -mindepth 1 -maxdepth 1 -type d | head -n 1)
-          if [ -n "$PUB_DIR" ]; then
-            cd "$PUB_DIR"
-          else
-            cd publish
-          fi
-          zip -j ../../JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
+          cat <<EOF > publish/meta.json
+          {
+            "id": "9bab105e-9af0-4e25-a87d-876713b60962",
+            "version": "${{ steps.version.outputs.VERSION }}",
+            "entryAssembly": "JellyEmu.dll",
+            "entryType": "JellyEmu.Plugin",
+            "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
+            "checkIntervalSeconds": 86400,
+            "minHostVersion": "10.8.0"
+          }
+          EOF
+          cd publish
+          zip -r ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip ./*
           cd ..
 
       - name: Compute checksums
         id: checksum
         run: |
-          echo "MD5=$(md5sum JellyEmu_${{ steps.version.outputs.VERSION }}.zip | awk '{print $1}')" >> $GITHUB_OUTPUT
-          echo "SHA256=$(sha256sum JellyEmu_${{ steps.version.outputs.VERSION }}.zip | awk '{print $1}')" >> $GITHUB_OUTPUT
+          MD5_SUM=$(md5sum JellyEmu_${{ steps.version.outputs.VERSION }}.zip | awk '{print $1}')
+          SHA256_SUM=$(sha256sum JellyEmu_${{ steps.version.outputs.VERSION }}.zip | awk '{print $1}')
+          echo "MD5=${MD5_SUM}" >> $GITHUB_OUTPUT
+          echo "SHA256=${SHA256_SUM}" >> $GITHUB_OUTPUT
+          echo "Built ZIP checksum MD5: ${MD5_SUM}"
 
       - name: Get previous tag
         id: previoustag
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
+          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1 || echo "")
           echo "PREV=${PREV}" >> $GITHUB_OUTPUT
 
       - name: Generate changelog
         id: changelog
         run: |
           if [ -n "${{ steps.previoustag.outputs.PREV }}" ]; then
-            LOG=$(git log ${{ steps.previoustag.outputs.PREV }}..${{ github.ref_name }} --pretty=format:"- %s" --no-merges)
+            LOG=$(git log ${{ steps.previoustag.outputs.PREV }}..${{ github.ref_name }} --pretty=format:"- %s" --no-merges || echo "- Release v${{ steps.version.outputs.VERSION }}")
           else
-            LOG=$(git log --pretty=format:"- %s" --no-merges)
+            LOG=$(git log -n 10 --pretty=format:"- %s" --no-merges || echo "- Release v${{ steps.version.outputs.VERSION }}")
           fi
           echo "LOG<<EOF" >> $GITHUB_OUTPUT
           echo "$LOG" >> $GITHUB_OUTPUT
@@ -80,11 +88,23 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: JellyEmu v${{ steps.version.outputs.VERSION }}
           body: |
-            ## JellyEmu v${{ steps.version.outputs.VERSION }}
+            ## JellyEmu v${{ steps.version.outputs.VERSION }} (Flash & HTML5 Edition)
 
-            ### Installation
-            Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract, and copy all files to your Jellyfin plugins folder.
+            ### What's New
+            - In-browser Flash (.swf) game emulation via Ruffle WebAssembly engine inside Jellyfin.
+            - HTML5 web game playback (.html and .zip containing index.html) inside Jellyfin.
+            - Full compatibility with Jellyfin 10.9.x, 10.10.x, and 10.11.x.
 
-            **MD5:** `${{ steps.checksum.outputs.MD5 }}`
+            ### Installation in Jellyfin
+            1. **Direct Install (Recommended)**: Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract its contents into your Jellyfin server plugins folder:
+               - Docker/Linux: `/config/plugins/JellyEmu/`
+               - Windows: `%ProgramData%\Jellyfin\Server\plugins\JellyEmu\`
+               - macOS: `~/.local/share/jellyfin/plugins/JellyEmu/`
+               Ensure the **File Transformation** plugin is installed in Jellyfin, then restart Jellyfin.
+
+            2. **Repository Install**: Add this repository manifest in Jellyfin Dashboard > Plugins > Repositories:
+               `https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json`
+
+            **MD5 Checksum:** `${{ steps.checksum.outputs.MD5 }}`
             **SHA256:** `${{ steps.checksum.outputs.SHA256 }}`
           files: JellyEmu_${{ steps.version.outputs.VERSION }}.zip

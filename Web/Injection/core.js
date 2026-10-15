@@ -32,7 +32,8 @@
         "adf","dms","ipf","adz",
         "dsk",
         "bin",
-        "3ds","cci","cia"
+        "3ds","cci","cia",
+        "swf","html","htm"
     ]);
 
     JE.knownRegions = new Set([

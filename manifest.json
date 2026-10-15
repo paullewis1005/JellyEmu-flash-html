@@ -1,47 +1,57 @@
 [
   {
     "guid": "9bab105e-9af0-4e25-a87d-876713b60962",
-    "id": "9bab105e-9af0-4e25-a87d-876713b60962",
     "name": "JellyEmu",
-    "description": "The Ultimate Emulator and Retro Gaming Library for Jellyfin with in-browser gameplay, Flash, HTML5, PICO-8, cloud saves, and metadata scraping.",
-    "overview": "Play ROMs, Flash, HTML5, PICO-8 and retro games directly in Jellyfin",
+    "description": "The Ultimate Emulator and Retro Gaming Library for Jellyfin with in-browser gameplay, Flash (Ruffle), HTML5, PICO-8, cloud saves, and metadata scraping.",
+    "overview": "Play ROMs, Flash SWF, HTML5, PICO-8 and retro games directly inside the Jellyfin web and desktop app.",
     "owner": "paullewis1005",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/assets/jellyemu.png",
     "versions": [
       {
         "version": "0.10.0.0",
-        "changelog": "Added Flash, HTML5, and PICO-8 players; in-browser emulation and ROM manager integration.",
+        "changelog": "Added Flash (Ruffle SWF) and HTML5 game support, in-browser emulation, and ROM manager integration.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
+        "checksum": "e07ba322070020cd4cfa6a5b599d7db0",
+        "timestamp": "2026-10-15T00:00:00Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
+      },
+      {
+        "version": "0.10.0.0",
+        "changelog": "Added Flash (Ruffle SWF) and HTML5 game support for Jellyfin 10.10.x.",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
-        "checksum": "",
-        "timestamp": "2024-10-15T00:00:00Z"
+        "checksum": "e07ba322070020cd4cfa6a5b599d7db0",
+        "timestamp": "2026-10-15T00:00:00Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
       },
       {
         "version": "0.10.0.0",
-        "changelog": "Jellyfin 10.9.x compatibility release.",
+        "changelog": "Added Flash (Ruffle SWF) and HTML5 game support for Jellyfin 10.9.x.",
         "targetAbi": "10.9.0.0",
         "sourceUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
-        "checksum": "",
-        "timestamp": "2024-10-15T00:00:00Z"
+        "checksum": "e07ba322070020cd4cfa6a5b599d7db0",
+        "timestamp": "2026-10-15T00:00:00Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
       },
       {
         "version": "0.10.0.0",
-        "changelog": "Jellyfin 10.8.x compatibility release.",
+        "changelog": "Added Flash (Ruffle SWF) and HTML5 game support for Jellyfin 10.8.x.",
         "targetAbi": "10.8.0.0",
         "sourceUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
-        "checksum": "",
-        "timestamp": "2024-10-15T00:00:00Z"
+        "checksum": "e07ba322070020cd4cfa6a5b599d7db0",
+        "timestamp": "2026-10-15T00:00:00Z",
+        "dependencies": [
+          "5e87cc92-571a-4d8d-8d98-d2d4147f9f90"
+        ]
       }
-    ],
-    "version": "0.10.0.0",
-    "targetAbi": "10.9.0.0",
-    "entryAssembly": "JellyEmu.dll",
-    "entryType": "JellyEmu.Plugin",
-    "sourceUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
-    "binaryUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
-    "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
-    "checkIntervalSeconds": 86400,
-    "minHostVersion": "10.8.0"
+    ]
   }
 ]

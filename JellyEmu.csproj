@@ -8,11 +8,11 @@
     <RollForward>Major</RollForward>
 
     <!-- Plugin Metadata Start -->
-    <AssemblyName>Jellwebgames</AssemblyName>
+    <AssemblyName>JellyEmu</AssemblyName>
     <RootNamespace>JellyEmu</RootNamespace>
-    <Version>0.10.0.2</Version>
-    <AssemblyVersion>0.9.2.4</AssemblyVersion>
-    <FileVersion>0.9.2.4</FileVersion>
+    <Version>0.10.0.0</Version>
+    <AssemblyVersion>0.10.0.0</AssemblyVersion>
+    <FileVersion>0.10.0.0</FileVersion>
     <Authors>tismbism</Authors>
     <RepositoryUrl>https://github.com/paullewis1005/JellyEmu-flash-html</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
