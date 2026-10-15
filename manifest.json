@@ -3,7 +3,7 @@
     "version":  "0.10.0.0",
     "entryAssembly":  "JellyEmu.dll",
     "entryType":  "JellyEmu.Plugin",
-    "updateFeedUrl":  "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
+    "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
     "checkIntervalSeconds":  86400,
     "minHostVersion":  "1.0.0"
 }
