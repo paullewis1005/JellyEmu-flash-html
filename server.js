@@ -216,6 +216,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve Jellyfin Plugin Repository Manifest
+app.get(['/manifest.json', '/jellyemu/manifest.json'], (req, res) => {
+  const manifestPath = path.join(__dirname, 'manifest.json');
+  if (fs.existsSync(manifestPath)) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.sendFile(manifestPath);
+  }
+  res.status(404).json({ error: 'manifest.json not found' });
+});
+
 // Static assets
 app.use('/jellyemu/assets', express.static(path.join(__dirname, 'Web')));
 app.use('/Web', express.static(path.join(__dirname, 'Web')));
