@@ -43,6 +43,8 @@
     <EmbeddedResource Include="Templates\pico8.html" LogicalName="JellyEmu.Templates.pico8.html" />
     <EmbeddedResource Include="Templates\ejs.html" LogicalName="JellyEmu.Templates.ejs.html" />
     <EmbeddedResource Include="Templates\play.html" LogicalName="JellyEmu.Templates.play.html" />
+    <EmbeddedResource Include="Templates\flash.html" LogicalName="JellyEmu.Templates.flash.html" />
+    <EmbeddedResource Include="Templates\html5.html" LogicalName="JellyEmu.Templates.html5.html" />
     <!-- Script & Asset Modules-->
     <EmbeddedResource Include="Web/ejs.input.js" />
     <EmbeddedResource Include="Web/ejs.core.js" />
@@ -63,10 +65,10 @@
     <EmbeddedResource Include="Resources\system_bios.json" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="xunit" Version="2.9.2" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" Condition="'$(Configuration)' == 'Debug'">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
