@@ -142,6 +142,10 @@ namespace JellyEmu
                 { "3ds", "Nintendo 3DS" }, { "nintendo 3ds", "Nintendo 3DS" }, { "nintendo3ds", "Nintendo 3DS" },
                 // Pico 8
                 { "pico-8", "PICO-8" }, { "pico8", "PICO-8" }, { "pico 8", "PICO-8" }, { "pico", "PICO-8" },
+                // Flash
+                { "flash", "Flash" }, { "adobe flash", "Flash" }, { "macromedia flash", "Flash" }, { "swf", "Flash" },
+                // HTML5 / Web
+                { "html5", "HTML5" }, { "html", "HTML5" }, { "web", "HTML5" }, { "browser", "HTML5" },
             };
 
         private static readonly Dictionary<string, string> UnambiguousExtensions =
