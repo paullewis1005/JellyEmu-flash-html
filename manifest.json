@@ -1,6 +1,6 @@
 ﻿{
     "id":  "9bab105e-9af0-4e25-a87d-876713b60962",
-    "version":  "0.9.2.4",
+    "version":  "0.10.0.0",
     "entryAssembly":  "JellyEmu.dll",
     "entryType":  "JellyEmu.Plugin",
     "updateFeedUrl":  "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
