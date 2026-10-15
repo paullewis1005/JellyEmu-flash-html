@@ -2,7 +2,7 @@
   {
     "id": "9bab105e-9af0-4e25-a87d-876713b60962",
     "version": "0.10.0.0",
-    "targetAbi": "10.8.0.0",
+    "targetAbi": "12.2.0.0",
     "entryAssembly": "JellyEmu.dll",
     "entryType": "JellyEmu.Plugin",
     "binaryUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
