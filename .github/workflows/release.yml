@@ -37,19 +37,12 @@ jobs:
           VERSION=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' JellyEmu.csproj | xargs)
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Zip release artifacts
+      - name: Prepare Manifest and Zip Artifacts
         run: |
           jq --arg v "${{ steps.version.outputs.VERSION }}" 'map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
           cd publish
-          zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip \
-            JellyEmu.dll manifest.json
+          zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
 
-      - name: Create Release Zip
-        run: | 
-         cd publish
-         zip -j JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
-
-      
       - name: Compute checksums
         id: checksum
         run: |
@@ -83,7 +76,7 @@ jobs:
             ## JellyEmu v${{ steps.version.outputs.VERSION }}
 
             ### Installation
-            Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract, and copy both files to your Jellyfin plugins folder.
+            Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract, and copy all files to your Jellyfin plugins folder.
 
             **MD5:** `${{ steps.checksum.outputs.MD5 }}`
             **SHA256:** `${{ steps.checksum.outputs.SHA256 }}`
