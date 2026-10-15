@@ -36,12 +36,14 @@ namespace JellyEmu.Controllers
             var item = LibraryManager.GetItemById(itemId);
             if (item == null) return NotFound();
 
-            var resolvedCore = ResolveCore(item, userId, core);
-
             return resolvedCore switch
             {
                 "pico8" => PlayPico8(itemId),
                 "play"  => await PlayPlay(itemId, userId, slot),
+                "flash" => PlayFlash(itemId),
+                "html5" => PlayHtml5(itemId),
+                _       => await PlayEjs(itemId, userId, slot, core, httpClientFactory)
+            };
                 _       => await PlayEjs(itemId, userId, slot, core, httpClientFactory)
             };
         }
