@@ -321,6 +321,16 @@ namespace JellyEmu.Controllers
                     {
                         new("play", "Play! (WASM)", true)
                     }
+                },
+                { "Flash", new List<CoreOption>
+                    {
+                        new("flash", "Ruffle (Flash)", false)
+                    }
+                },
+                { "HTML5", new List<CoreOption>
+                    {
+                        new("html5", "HTML5 Browser", false)
+                    }
                 }
             };
 
