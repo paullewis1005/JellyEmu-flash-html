@@ -1,0 +1,260 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Mime;
+using System.Text.Json;
+using System.Threading.Tasks;
+using JellyEmu.Services;
+using MediaBrowser.Common.Configuration;
+using MediaBrowser.Controller.Library;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+namespace JellyEmu.Controllers
+{
+    /// <summary>
+    /// Handles user preferences (global, system, game scopes) stored in SQLite.
+    /// Routes: /jellyemu/prefs/*
+    /// </summary>
+    [ApiController]
+    public class JellyEmuPrefsController : JellyEmuBaseController
+    {
+        public JellyEmuPrefsController(
+            ILibraryManager libraryManager,
+            IApplicationPaths appPaths,
+            ILogger<JellyEmuPrefsController> logger,
+            JellyEmuEjsManager ejsManager,
+            JellyEmuSessionService sessionService,
+            IHttpClientFactory httpClientFactory)
+            : base(libraryManager, appPaths, logger, ejsManager, sessionService, httpClientFactory) { }
+
+        /// <summary>
+        /// Returns effective runtime preferences hierarchically merged (Defaults -> Global -> System).
+        /// Path: GET /jellyemu/prefs/{userId}/effective?platform={platform}
+        /// </summary>
+        [HttpGet("/jellyemu/prefs/{userId}/effective")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetEffectivePrefs(string userId, [FromQuery] string? platform)
+        {
+            var cacheKey = JellyEmuCacheKeys.EffectivePrefs(userId, platform);
+            if (CacheService.TryGetValue<object>(cacheKey, out var cachedDto) && cachedDto != null)
+            {
+                return Ok(cachedDto);
+            }
+
+            var prefs = await PreferenceService.GetEffectivePreferencesAsync(userId, platform);
+            var result = new
+            {
+                userId,
+                platform,
+                scale               = prefs.Scale,
+                mute                = prefs.Mute,
+                volume              = prefs.Volume,
+                controller          = prefs.Controller,
+                haptics             = prefs.Haptics,
+                autosave            = prefs.Autosave,
+                shader              = prefs.Shader,
+                videoRotation       = prefs.VideoRotation,
+                controls            = prefs.Controls,
+                controllerControls  = prefs.ControllerControls,
+                jeBindings          = prefs.Controls,
+                virtualGamepad      = prefs.VirtualGamepad,
+                virtualGamepadLefty = prefs.VirtualGamepadLefty,
+                core                = prefs.Core,
+                vsync               = prefs.Vsync,
+                ffrate              = prefs.FfRate,
+                smrate              = prefs.SmRate,
+                showFps             = prefs.ShowFps
+            };
+            CacheService.Set(cacheKey, (object)result, slidingExpiration: TimeSpan.FromHours(2));
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Returns explicit raw preferences configured at a specific scope (global, system, game).
+        /// Path: GET /jellyemu/prefs/{userId}?scope={global|system|game}&targetId={targetId}
+        /// </summary>
+        [HttpGet("/jellyemu/prefs/{userId}")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetScopedPrefs(string userId, [FromQuery] string? scope, [FromQuery] string? targetId)
+        {
+            var targetScope = string.IsNullOrWhiteSpace(scope) ? "global" : scope;
+            var target = targetId ?? string.Empty;
+            var cacheKey = JellyEmuCacheKeys.ScopedPrefs(userId, targetScope, target);
+            if (CacheService.TryGetValue<object>(cacheKey, out var cached) && cached != null)
+            {
+                return Ok(cached);
+            }
+
+            var prefs = await PreferenceService.GetScopedPreferencesAsync(userId, targetScope, target);
+            var result = new
+            {
+                userId,
+                scope = targetScope,
+                targetId = target,
+                preferences = prefs
+            };
+            CacheService.Set(cacheKey, (object)result, slidingExpiration: TimeSpan.FromHours(2));
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Returns a summary list of all platforms/systems and games that have custom overrides configured.
+        /// Path: GET /jellyemu/prefs/{userId}/summary
+        /// </summary>
+        [HttpGet("/jellyemu/prefs/{userId}/summary")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOverridesSummary(string userId)
+        {
+            var cacheKey = JellyEmuCacheKeys.PrefsSummary(userId);
+            if (CacheService.TryGetValue<object>(cacheKey, out var cached) && cached != null)
+            {
+                return Ok(cached);
+            }
+
+            var list = await PreferenceService.GetAllOverridesSummaryAsync(userId);
+            var result = new
+            {
+                userId,
+                overrides = list
+            };
+            CacheService.Set(cacheKey, (object)result, slidingExpiration: TimeSpan.FromHours(2));
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Upserts preferences at the specified scope (global, system, or game).
+        /// Path: POST /jellyemu/prefs/{userId}
+        /// Body can be either:
+        ///   1. { "scope": "system", "targetId": "SNES", "preferences": { "shader": "crt-easymode", ... } }
+        ///   2. Direct dictionary { "shader": "crt-easymode", ... } (defaults to global scope)
+        /// </summary>
+        [HttpPost("/jellyemu/prefs/{userId}")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> PostPrefs(string userId, [FromQuery] string? scope, [FromQuery] string? targetId)
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                if (string.IsNullOrWhiteSpace(body)) return BadRequest("Request body cannot be empty.");
+
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+
+                string targetScope = !string.IsNullOrWhiteSpace(scope) ? scope : "global";
+                string finalTargetId = targetId ?? string.Empty;
+                var dict = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+                if (root.TryGetProperty("preferences", out var prefsProp) && prefsProp.ValueKind == JsonValueKind.Object)
+                {
+                    if (root.TryGetProperty("scope", out var sProp)) targetScope = sProp.GetString() ?? targetScope;
+                    if (root.TryGetProperty("targetId", out var tProp)) finalTargetId = tProp.GetString() ?? finalTargetId;
+
+                    foreach (var prop in prefsProp.EnumerateObject())
+                    {
+                        dict[prop.Name] = prop.Value.ValueKind == JsonValueKind.Null ? null : prop.Value.ToString();
+                    }
+                }
+                else
+                {
+                    // Direct property bag format
+                    if (root.TryGetProperty("scope", out var sProp)) targetScope = sProp.GetString() ?? targetScope;
+                    if (root.TryGetProperty("targetId", out var tProp)) finalTargetId = tProp.GetString() ?? finalTargetId;
+
+                    foreach (var prop in root.EnumerateObject())
+                    {
+                        if (prop.NameEquals("scope") || prop.NameEquals("targetId")) continue;
+                        dict[prop.Name] = prop.Value.ValueKind == JsonValueKind.Null ? null : prop.Value.ToString();
+                    }
+                }
+
+                // Handle aliases like jeBindings <-> controls
+                if (dict.TryGetValue("jeBindings", out var jeVal) && !dict.ContainsKey("controls"))
+                {
+                    dict["controls"] = jeVal;
+                }
+                if (dict.TryGetValue("controls", out var ctrlVal) && !dict.ContainsKey("jeBindings"))
+                {
+                    dict["jeBindings"] = ctrlVal;
+                }
+
+                await PreferenceService.SetPreferencesAsync(userId, targetScope, finalTargetId, dict);
+                Logger.LogInformation("[JellyEmu] Preferences saved for user {UserId}, scope={Scope}, target={TargetId}", userId, targetScope, finalTargetId);
+
+                // Evict effective, scoped, and summary caches for this user
+                CacheService.EvictByPrefix(JellyEmuCacheKeys.EffectivePrefsUserPrefix(userId));
+                CacheService.EvictByPrefix(JellyEmuCacheKeys.ScopedPrefsUserPrefix(userId));
+                CacheService.Evict(JellyEmuCacheKeys.PrefsSummary(userId));
+
+                var updated = await PreferenceService.GetScopedPreferencesAsync(userId, targetScope, finalTargetId);
+                return Ok(new
+                {
+                    userId,
+                    scope = targetScope,
+                    targetId = finalTargetId,
+                    preferences = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[JellyEmu] Failed to save preferences for user {UserId}", userId);
+                return BadRequest("Invalid JSON payload.");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a specific preference key or all preferences at a scope.
+        /// Path: DELETE /jellyemu/prefs/{userId}?scope={system|game}&targetId={targetId}&key={key}
+        /// </summary>
+        [HttpDelete("/jellyemu/prefs/{userId}")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> DeletePref(string userId, [FromQuery] string scope, [FromQuery] string targetId, [FromQuery] string? key)
+        {
+            var success = await PreferenceService.DeletePreferenceAsync(userId, scope, targetId, key);
+
+            // Evict effective, scoped, and summary caches for this user
+            CacheService.EvictByPrefix(JellyEmuCacheKeys.EffectivePrefsUserPrefix(userId));
+            CacheService.EvictByPrefix(JellyEmuCacheKeys.ScopedPrefsUserPrefix(userId));
+            CacheService.Evict(JellyEmuCacheKeys.PrefsSummary(userId));
+
+            return Ok(new
+            {
+                success,
+                userId,
+                scope,
+                targetId,
+                key
+            });
+        }
+
+        /// <summary>
+        /// Completely resets all user preferences and custom overrides back to factory defaults.
+        /// Path: DELETE /jellyemu/prefs/{userId}/reset
+        /// </summary>
+        [HttpDelete("/jellyemu/prefs/{userId}/reset")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> ResetPrefs(string userId)
+        {
+            var success = await PreferenceService.ResetUserPreferencesAsync(userId);
+
+            // Evict effective, scoped, and summary caches for this user
+            CacheService.EvictByPrefix(JellyEmuCacheKeys.EffectivePrefsUserPrefix(userId));
+            CacheService.EvictByPrefix(JellyEmuCacheKeys.ScopedPrefsUserPrefix(userId));
+            CacheService.Evict(JellyEmuCacheKeys.PrefsSummary(userId));
+
+            return Ok(new
+            {
+                success,
+                userId,
+                message = "All user preferences and overrides have been reset to factory defaults."
+            });
+        }
+    }
+}
