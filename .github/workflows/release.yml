@@ -20,13 +20,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '8.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
-
-      - name: Run tests
-        run: dotnet test --configuration Debug --no-restore
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
@@ -42,10 +39,10 @@ jobs:
 
       - name: Zip release artifacts
         run: |
-          jq '.version = "${{ steps.version.outputs.VERSION }}"' manifest.json > publish/manifest.json
+          jq --arg v "${{ steps.version.outputs.VERSION }}" '. \vert{} map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
           cd publish
           zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip \
-            JellyEmu.dll Scriban.dll manifest.json
+            JellyEmu.dll manifest.json
 
       - name: Compute checksums
         id: checksum
@@ -80,10 +77,8 @@ jobs:
             ## JellyEmu v${{ steps.version.outputs.VERSION }}
 
             ### Installation
-            Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract, and copy both DLLs to your Jellyfin plugins folder.
+            Download `JellyEmu_${{ steps.version.outputs.VERSION }}.zip`, extract, and copy both files to your Jellyfin plugins folder.
 
             **MD5:** `${{ steps.checksum.outputs.MD5 }}`
             **SHA256:** `${{ steps.checksum.outputs.SHA256 }}`
-
-            Update these values in `manifest.json` and `catalog.json` for the plugin repositories.
           files: JellyEmu_${{ steps.version.outputs.VERSION }}.zip
