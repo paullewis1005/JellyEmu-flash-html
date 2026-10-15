@@ -37,9 +37,9 @@ jobs:
           VERSION=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' JellyEmu.csproj | xargs)
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Zip release artifacts
+     - name: Zip release artifacts
         run: |
-          jq --arg v "${{ steps.version.outputs.VERSION }}" '. \vert{} map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
+          jq --arg v "${{ steps.version.outputs.VERSION }}" 'map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
           cd publish
           zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip \
             JellyEmu.dll manifest.json
