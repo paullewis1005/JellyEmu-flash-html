@@ -5,7 +5,7 @@
     "targetAbi": "10.8.0.0",
     "entryAssembly": "JellyEmu.dll",
     "entryType": "JellyEmu.Plugin",
-    "binaryUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu.dll",
+    "binaryUrl": "binaryUrl": "https://github.com/paullewis1005/JellyEmu-flash-html/releases/download/v0.10.0.0/JellyEmu_0.10.0.0.zip",
     "updateFeedUrl": "https://raw.githubusercontent.com/paullewis1005/JellyEmu-flash-html/main/manifest.json",
     "checkIntervalSeconds": 86400,
     "minHostVersion": "1.0.0"
