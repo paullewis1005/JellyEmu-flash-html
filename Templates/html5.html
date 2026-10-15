@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ game_name }}</title>
+    <style>
+        html, body, iframe { width: 100%; height: 100%; margin: 0; padding: 0; border: none; background: #000; overflow: hidden; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div id="container" style="width:100%; height:100%;"></div>
+    <script>
+        window.addEventListener("load", async () => {
+            const container = document.getElementById("container");
+            const romUrl = "{{ rom_url }}";
+
+            if (romUrl.endsWith(".html") || romUrl.endsWith(".htm")) {
+                const iframe = document.createElement("iframe");
+                iframe.src = romUrl;
+                container.appendChild(iframe);
+            } else {
+                const res = await fetch(romUrl);
+                const buf = await res.arrayBuffer();
+                const zip = await window.JSZip.loadAsync(buf);
+                const blobMap = {};
+                let indexFile = null;
+
+                for (const [path, file] of Object.entries(zip.files)) {
+                    if (file.dir) continue;
+                    const ext = path.split('.').pop().toLowerCase();
+                    const mime = { html: 'text/html', js: 'text/javascript', css: 'text/css', png: 'image/png', jpg: 'image/jpeg', wasm: 'application/wasm' }[ext] || 'application/octet-stream';
+                    const blob = await file.async('blob');
+                    blobMap[path] = URL.createObjectURL(new Blob([blob], { type: mime }));
+                    if (path.endsWith('index.html')) indexFile = path;
+                }
+
+                if (!indexFile) {
+                    container.innerHTML = '<p style="color:red;padding:20px;">Error: No index.html found in ZIP archive.</p>';
+                    return;
+                }
+
+                let html = await zip.file(indexFile).async('string');
+                for (const [path, blobUrl] of Object.entries(blobMap)) {
+                    html = html.split(path).join(blobUrl);
+                }
+
+                const iframe = document.createElement("iframe");
+                iframe.src = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+                container.appendChild(iframe);
+            }
+        });
+    </script>
+</body>
+</html>
