@@ -36,6 +36,8 @@ namespace JellyEmu.Controllers
             var item = LibraryManager.GetItemById(itemId);
             if (item == null) return NotFound();
 
+            var resolvedCore = ResolveCore(item, userId, core);
+
             return resolvedCore switch
             {
                 "pico8" => PlayPico8(itemId),
@@ -44,8 +46,74 @@ namespace JellyEmu.Controllers
                 "html5" => PlayHtml5(itemId),
                 _       => await PlayEjs(itemId, userId, slot, core, httpClientFactory)
             };
-                _       => await PlayEjs(itemId, userId, slot, core, httpClientFactory)
-            };
+        }
+
+        [HttpGet("/jellyemu/flash/play/{itemId}")]
+        [Produces(MediaTypeNames.Text.Html)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult PlayFlash(string itemId)
+        {
+            if (!IsValidId(itemId)) return BadRequest("Invalid item ID.");
+            var item = LibraryManager.GetItemById(itemId);
+            if (item == null) return NotFound();
+
+            var ext = !string.IsNullOrEmpty(item.Path) ? Path.GetExtension(item.Path) : ".swf";
+            var filename = CleanCosmeticFilename(!string.IsNullOrEmpty(item.Path) ? Path.GetFileNameWithoutExtension(item.Path) : itemId);
+            var romUrl = ToAppUrl($"jellyemu/rom/{itemId}/{filename}{ext}");
+
+            var assembly = typeof(JellyEmuPlayController).Assembly;
+            using Stream? stream = assembly.GetManifestResourceStream("JellyEmu.Templates.flash.html");
+            if (stream == null) return StatusCode(StatusCodes.Status500InternalServerError, "Flash template resource is missing.");
+
+            using StreamReader reader = new(stream);
+            var template = Template.Parse(reader.ReadToEnd());
+
+            var html = template.Render(new
+            {
+                game_name = HtmlEncoder.Default.Encode(item.Name),
+                base_url = GetPathBase(),
+                rom_url = romUrl,
+                item_id = itemId
+            });
+
+            ApplyCrossOriginIsolationHeaders();
+            return Content(html, MediaTypeNames.Text.Html);
+        }
+
+        [HttpGet("/jellyemu/html5/play/{itemId}")]
+        [Produces(MediaTypeNames.Text.Html)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult PlayHtml5(string itemId)
+        {
+            if (!IsValidId(itemId)) return BadRequest("Invalid item ID.");
+            var item = LibraryManager.GetItemById(itemId);
+            if (item == null) return NotFound();
+
+            var ext = !string.IsNullOrEmpty(item.Path) ? Path.GetExtension(item.Path) : ".zip";
+            var filename = CleanCosmeticFilename(!string.IsNullOrEmpty(item.Path) ? Path.GetFileNameWithoutExtension(item.Path) : itemId);
+            var romUrl = ToAppUrl($"jellyemu/rom/{itemId}/{filename}{ext}");
+
+            var assembly = typeof(JellyEmuPlayController).Assembly;
+            using Stream? stream = assembly.GetManifestResourceStream("JellyEmu.Templates.html5.html");
+            if (stream == null) return StatusCode(StatusCodes.Status500InternalServerError, "HTML5 template resource is missing.");
+
+            using StreamReader reader = new(stream);
+            var template = Template.Parse(reader.ReadToEnd());
+
+            var html = template.Render(new
+            {
+                game_name = HtmlEncoder.Default.Encode(item.Name),
+                base_url = GetPathBase(),
+                rom_url = romUrl,
+                item_id = itemId
+            });
+
+            ApplyCrossOriginIsolationHeaders();
+            return Content(html, MediaTypeNames.Text.Html);
         }
 
         /// <summary>
@@ -381,8 +449,6 @@ namespace JellyEmu.Controllers
                 screenshots_to_library = !string.IsNullOrWhiteSpace(Plugin.Instance?.Configuration.ScreenshotsFolder)
             });
 
-            // When opened as a new tab (threaded cores), these headers make the page
-            // cross-origin isolated so SharedArrayBuffer is available. Harmless for iframe mode.
             ApplyCrossOriginIsolationHeaders();
 
             return Content(html, MediaTypeNames.Text.Html);
