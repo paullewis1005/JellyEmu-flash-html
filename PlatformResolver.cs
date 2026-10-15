@@ -162,6 +162,8 @@ namespace JellyEmu
                 { ".pce", "TurboGrafx-16" }, { ".col", "ColecoVision" }, { ".cv", "ColecoVision" },
                 { ".ngp", "NeoGeo Pocket" }, { ".ngc", "NeoGeo Pocket" }, { ".cso", "PSP" }, { ".p8", "PICO-8" },
                 { ".3ds", "Nintendo 3DS" }, { ".cci", "Nintendo 3DS" }, { ".cia", "Nintendo 3DS" },
+                { ".swf", "Flash" },
+                { ".html", "HTML5" }, { ".htm", "HTML5" },
             };
 
         public static readonly Dictionary<string, string> LibraryOnlyAliases =
