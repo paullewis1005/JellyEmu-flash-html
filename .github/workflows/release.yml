@@ -23,13 +23,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore JellyEmu.csproj
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build JellyEmu.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish --configuration Release --no-build --output ./publish
+        run: dotnet publish JellyEmu.csproj --configuration Release --no-build --output ./publish
 
       - name: Get version from csproj
         id: version
@@ -39,7 +39,13 @@ jobs:
 
       - name: Prepare Manifest and Zip Artifacts
         run: |
+          # Update the version in the manifest and place it in the publish folder
           jq --arg v "${{ steps.version.outputs.VERSION }}" 'map(if .id == "9bab105e-9af0-4e25-a87d-876713b60962" then .version = $v else . end)' manifest.json > publish/manifest.json
+          
+          # Flatten the publish directory structure if framework subfolders were created
+          find publish/ -mindepth 2 -type f -exec mv -t publish/ {} +
+          
+          # Create the release zip containing all required files
           cd publish
           zip -j ../JellyEmu_${{ steps.version.outputs.VERSION }}.zip JellyEmu.dll Scriban.dll manifest.json
 
